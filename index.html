@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JPG to PDF Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* Previous CSS remains the same */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #f0f2f5;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #1a73e8;
+            margin-bottom: 1.5rem;
+        }
+
+        .upload-section {
+            border: 2px dashed #1a73e8;
+            padding: 2rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            cursor: pointer;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        #convertBtn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+            margin-top: 1rem;
+        }
+
+        #convertBtn:hover {
+            background: #1557b0;
+        }
+
+        #convertBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        #preview {
+            max-width: 100%;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .download-link {
+            margin-top: 1rem;
+            color: #1a73e8;
+            text-decoration: none;
+            display: none;
+        }
+
+        /* New compression controls */
+        .compression-control {
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .compression-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #666;
+        }
+
+        #compressionSlider {
+            width: 200px;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>High Quality JPG to PDF Converter</h1>
+        
+        <div class="upload-section" onclick="document.getElementById('fileInput').click()">
+            <p>Click to upload JPG file or drag and drop</p>
+            <input type="file" id="fileInput" accept="image/jpeg">
+        </div>
+
+        <img id="preview" alt="Image preview">
+        
+        <div class="compression-control">
+            <label class="compression-label" for="compressionSlider">
+                Compression Quality: <span id="qualityValue">80</span>%
+            </label>
+            <input type="range" id="compressionSlider" min="10" max="100" value="80">
+        </div>
+
+        <button id="convertBtn" onclick="convertToPDF()" disabled>Convert to PDF</button>
+        <a id="downloadLink" class="download-link" download>Download PDF</a>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const convertBtn = document.getElementById('convertBtn');
+        const preview = document.getElementById('preview');
+        const downloadLink = document.getElementById('downloadLink');
+        const compressionSlider = document.getElementById('compressionSlider');
+        const qualityValue = document.getElementById('qualityValue');
+
+        // Show compression controls when image is loaded
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type === 'image/jpeg') {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    convertBtn.disabled = false;
+                    document.querySelector('.compression-control').style.display = 'block';
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Update quality percentage display
+        compressionSlider.addEventListener('input', function() {
+            qualityValue.textContent = this.value;
+        });
+
+        function convertToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const quality = compressionSlider.value / 100;
+
+            // Get image dimensions
+            const img = new Image();
+            img.src = preview.src;
+            
+            img.onload = function() {
+                // Calculate PDF dimensions
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (img.height * pdfWidth) / img.width;
+                
+                // Add image with compression
+                doc.addImage(img, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'SLOW', quality);
+                
+                // Create compressed PDF
+                const pdfOutput = doc.output('blob');
+                const pdfUrl = URL.createObjectURL(pdfOutput);
+                
+                // Update download link
+                downloadLink.href = pdfUrl;
+                downloadLink.style.display = 'block';
+                downloadLink.innerHTML = `Download PDF (${(pdfOutput.size/1024).toFixed(1)}KB)`;
+            };
+        }
+    </script>
+</body>
+</html>
